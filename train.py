@@ -28,7 +28,7 @@ class StreamToLogger(object):
         self.terminal.flush()
         self.log.flush()
 
-# sys.stdout = StreamToLogger("console_output_TCN.txt")
+sys.stdout = StreamToLogger("console_output_TCN.txt")
 
 # Transformer 模型定义
 class TransformerModel(nn.Module):
@@ -177,8 +177,23 @@ for seq_out_len in seq_out_lens:
         rmse = np.sqrt(mse)
         mae = mean_absolute_error(y_test_reshaped, predictions_reshaped)
         r2 = r2_score(y_test_reshaped, predictions_reshaped)
+        # 定义一个小的阈值，用于确定目标值是否接近零
         epsilon = 1e-10
-        mape = np.mean(np.abs((y_test_reshaped - predictions_reshaped) / (y_test_reshaped + epsilon))) * 100
+
+        # 初始化MAPE的累积总和和计数器
+        mape_sum = 0
+        count = 0
+
+        # 遍历每个数据点
+        for i in range(y_test_reshaped.shape[0]):
+            for j in range(y_test_reshaped.shape[1]):
+                # 只有当目标值不接近零时，才计算MAPE
+                if abs(y_test_reshaped[i, j]) > epsilon:
+                    mape_sum += np.abs((y_test_reshaped[i, j] - predictions_reshaped[i, j]) / y_test_reshaped[i, j])
+                    count += 1
+
+        # 计算MAPE
+        mape = (mape_sum / count) * 100 if count > 0 else 0
 
         # 存储指标
         mse_scores.append(mse)
